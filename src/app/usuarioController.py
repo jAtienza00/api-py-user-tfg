@@ -8,9 +8,9 @@ from .schemas import usuario_schema, usuarios_schema
 from .auth import Security
 
 def comprobarConexion():
-    if Security.verificar(request.headers) == False:
-        return jsonify({'success': False}), 401
-    return jsonify({'success': True}), 200
+    if Security.verificar(request.headers):
+        return jsonify({'success': True}), 200
+    return jsonify({'success': False}), 401
 
 def create_usuario():
     try:
@@ -48,7 +48,7 @@ def show_usuarios():
         usuarios = Usuarios.query.all()
         resultados = usuarios_schema.dump(usuarios)
 
-        return jsonify(resultados)
+        return jsonify(resultados), 200
     except tokenNoValido as e:
         return {'message': str(e)}, 401
     except:
