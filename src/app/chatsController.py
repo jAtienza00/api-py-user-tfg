@@ -1,8 +1,8 @@
-from pymysql import IntegrityError
 from .models import Chat
 from flask import request, jsonify, current_app
 from .schemas import chats_resumen_schema, chat_schema, chat_resumen_schema
 from .auth import Security # Keep Security import
+from sqlalchemy.exc import IntegrityError # Import SQLAlchemy's IntegrityError
 from .db import db
 import random
 import string
@@ -95,25 +95,38 @@ def crearChat():
             db.session.add(new_chat)
             db.session.commit()
             return jsonify({'message': 'Chat creado exitosamente', 'clave': new_chat.clave, 'nombre': new_chat.nombre, 'id': new_chat.id}), 201
-        except IntegrityError as e:
+        except IntegrityError as e: # This will catch sqlalchemy.exc.IntegrityError
             db.session.rollback()
-            # Verificar si el error es específicamente por la clave única
-            # El mensaje de error original de la DB suele estar en e.orig
-            if "Duplicate entry" in str(e.orig) and "for key" in str(e.orig) and "clave" in str(e.orig).lower():
+            # Check for PostgreSQL unique violation (pgcode '23505')
+            # e.orig should be the DBAPI exception (e.g., from psycopg2)
+            is_pg_unique_violation = hasattr(e.orig, 'pgcode') and e.orig.pgcode == '23505'
+            
+            # Check if the violation is related to the 'clave' column.
+            # The constraint name might be 'chat_clave_key' or similar.
+            # Checking 'clave' in the error message is a general approach.
+            if is_pg_unique_violation and "clave" in str(e.orig).lower():
+                clave_generada_anterior = clave_generada # Store for logging
                 if intento < intentos_maximos - 1:
                     clave_generada = generar_clave_random()
+                    current_app.logger.warning(
+                        f"Clave duplicada '{clave_generada_anterior}' para el chat. "
+                        f"Reintentando con nueva clave '{clave_generada}'. Intento {intento + 2}/{intentos_maximos}"
+                    )
                     continue 
                 else:
-                    current_app.logger.error(f"No se pudo generar una clave única después de {intentos_maximos} intentos.")
+                    current_app.logger.error(
+                        f"No se pudo generar una clave única para el chat después de {intentos_maximos} intentos. "
+                        f"Última clave intentada (duplicada): '{clave_generada_anterior}'."
+                    )
                     return jsonify({'message': 'Error al generar una clave única para el chat después de varios intentos'}), 500
             else:
-                current_app.logger.error(f"Error de integridad al crear chat (no por clave duplicada): {e}")
+                current_app.logger.error(f"Error de integridad al crear chat (no por clave duplicada o error no reconocido): {e}")
+                current_app.logger.error(f"Detalles del error original: {e.orig}")
                 return jsonify({'message': 'Error de integridad en la base de datos al crear el chat'}), 500
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error general al crear chat: {e}")
             return jsonify({'message': 'Error interno al crear el chat'}), 500
-    return jsonify({'message': 'No se pudo crear el chat después de varios intentos de generación de clave'}), 500
     
 def eliminarChat(chat_id):
     auth_result = comprobarRequest(request)

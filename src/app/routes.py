@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint
 from .usuarioController import comprobarConexion, create_usuario, show_usuarios, show_usuario, update_usuario, delete_usuario
 from .auth import Security
 from .chatsController import mostrarChats, crearChat, eliminarChat, mostrarChat, actualizarChat, unirseAChat, buscarChat
