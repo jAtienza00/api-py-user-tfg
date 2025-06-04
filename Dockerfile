@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia el resto de los archivos del proyecto
-COPY . .
+COPY src/ .
 
 # Expón el puerto que tu aplicación va a usar
 EXPOSE 8000
