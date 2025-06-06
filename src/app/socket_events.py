@@ -78,7 +78,4 @@ def configure_socket_events(socketio):
         # Emitir el mensaje a todos los clientes en la 'sala' especificada, excepto al emisor
         emit('recibir_mensaje', data, broadcast=True, include_self=False, to=sala)
         
-        # Confirmar al emisor que su mensaje fue enviado
-        emit('recibir_mensaje', data, to=request.sid)
-        
         logger.info(f"Mensaje enviado a la sala '{sala}' (excepto al emisor): {data}")
