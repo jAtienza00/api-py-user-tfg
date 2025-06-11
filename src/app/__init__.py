@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Inicialización de SocketIO fuera de la función create_app
-socketio = SocketIO(cors_allowed_origins="*", logger=True, engineio_logger=True)
+socketio = SocketIO(cors_allowed_origins="*", async_mode="eventlet", logger=True, engineio_logger=True)
 
 def create_app():
     app = Flask(__name__)
